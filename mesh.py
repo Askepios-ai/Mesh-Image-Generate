@@ -1,8 +1,8 @@
 from PIL import Image, ImageDraw
 import random
 
-NUM_NODES_WIDE = 128
-NUM_NODES_HIGH = 72
+NUM_NODES_WIDE = 64
+NUM_NODES_HIGH = 36
 WIDTH = 500
 HEIGHT = 500
 
@@ -36,7 +36,25 @@ def pixelInPolygon(nodes, pixel):
     else:
         return False
 
-def calculatePolyColour(nodes, pix):
+def getPolyBox(poly):
+    maxX = 0
+    maxY = 0
+    minX = WIDTH
+    minY = HEIGHT
+
+    for node in poly:
+        if node[0] > maxX:
+            maxX = node[0]
+        if node[0] < minX:
+            minX = node[0]
+
+        if node[1] > maxY:
+            maxY = node[1]
+        if node[1] < minY:
+            minY = node[1]
+    return minX, maxX, minY, maxY
+    
+def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image pixels
     maxX = 0
     maxY = 0
     minX = WIDTH
@@ -48,16 +66,7 @@ def calculatePolyColour(nodes, pix):
 
     numPixels = 0
     
-    for node in nodes:
-        if node[0] > maxX:
-            maxX = node[0]
-        if node[0] < minX:
-            minX = node[0]
-
-        if node[1] > maxY:
-            maxY = node[1]
-        if node[1] < minY:
-            minY = node[1]
+    minX, maxX, minY, maxY = getPolyBox(nodes)
 
     #print(str(maxX) + " " + str(minX) + " " + str(maxY) + " " + str(minY) + "\n")
 
@@ -75,11 +84,78 @@ def calculatePolyColour(nodes, pix):
 
     return (redAverage, blueAverage, greenAverage)
 
+def getPolyList(x, y): #In: grid ref, out: list of tuple of grid references
+    return [((x, y), (x - 1, y - 1), (x - 1, y)),
+            ((x, y), (x, y - 1), (x - 1, y - 1)),
+            ((x, y), (x, y - 1), (x + 1, y)),
+            ((x, y), (x + 1, y), (x + 1, y + 1)),
+            ((x, y), (x + 1, y + 1), (x, y + 1)),
+            ((x, y), (x, y + 1), (x - 1, y))]
+
+def getPolyColourDif(poly, realPoly, polyColourDict, pix): #In: List of tuple of grid ref, colour dictionary, image pixels
+    minX, maxX, minY, maxY = getPolyBox(realPoly)
+    difference = 0
+    numPixels = 0
+
+    #print(realPoly)
+##    print("maxX minX maxY minY")
+##    print(str(maxX) + " " + str(minX) + " " + str(maxY) + " " + str(minY))
+
+    for x in range(minX, maxX):
+        for y in range(minY, maxY):
+            if pixelInPolygon(realPoly, [x, y]):
+                numPixels += 1
+                difference += abs(pix[x, y][0] - polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][0])
+                difference += abs(pix[x, y][1] - polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][1])
+                difference += abs(pix[x, y][2] - polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][2])
+
+##    print("Difference")
+##    print(difference)
+##    print("NumPixels")
+##    print(numPixels)
+    if numPixels > 0:
+        difference /= float(3*numPixels)
+##    print("Difference")
+##    print(difference)
+    return difference
+
+def moveNode(x, y, nodeList, polyColourDict, pix):
+    worstDif = 0
+    worstPoly = ()
+    worstRealPoly = ()
+    polyList = getPolyList(x, y)
+##    print("\nMove poly\n")
+    for poly in polyList:
+##        print(poly)
+##        print("\n")
+##        print(poly[0][0])
+##        print("\n")
+##        print(nodeList[poly[0][0]][poly[0][1]])
+##        print("\n")
+        realPoly = (nodeList[poly[0][0]][poly[0][1]], nodeList[poly[1][0]][poly[1][1]], nodeList[poly[2][0]][poly[2][1]])
+##        print("Real Poly")
+##        print realPoly
+        dif = getPolyColourDif(poly, realPoly, polyColourDict, pix)
+##        print("Dif")
+##        print(dif)
+        if dif > worstDif:
+            worstPoly = poly
+            worstRealPoly = realPoly
+            worstDif = dif
+##            print("Worst Real Poly")
+##            print(worstRealPoly)
+
+##    print(worstRealPoly)
+    nodeList[x][y] = ((worstRealPoly[0][0] + worstRealPoly[1][0] + worstRealPoly[2][0]) / 3, (worstRealPoly[0][1] + worstRealPoly[1][1] + worstRealPoly[2][1]) / 3)
+
+    polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))] = calculatePolyColour(worstRealPoly, pix)
+    
+
 #########################################################################################
 ##          Main start
 #########################################################################################
 
-targetImage = Image.open("test.jpg")
+targetImage = Image.open("test.png")
 pix = targetImage.load()
 WIDTH = targetImage.size[0]
 HEIGHT = targetImage.size[1]
@@ -97,11 +173,20 @@ for x in range(0, NUM_NODES_WIDE - 1):
     for y in range(0, NUM_NODES_HIGH - 1):
         polyColourDict[tuple(sorted([(x, y), (x, y + 1), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x][y + 1], nodeList[x + 1][y + 1]], pix)
         polyColourDict[tuple(sorted([(x, y), (x + 1, y), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x + 1][y], nodeList[x + 1][y + 1]], pix)
-        
-img = Image.new('RGB', (WIDTH, HEIGHT))
-drw = ImageDraw.Draw(img, "RGBA")
+for i in range(0, 10):
+    print i
+    xList = range(1, NUM_NODES_WIDE - 1)
+    random.shuffle(xList)
+    yList = range(1, NUM_NODES_HIGH - 1)
+    random.shuffle(yList)
+    for x in xList:
+        for y in yList:
+            moveNode(x, y, nodeList, polyColourDict, pix)
 
-drawNodeList(nodeList, polyColourDict, drw)
+            img = Image.new('RGB', (WIDTH, HEIGHT))
+            drw = ImageDraw.Draw(img, "RGBA")
 
-img.save("out.png")
+            drawNodeList(nodeList, polyColourDict, drw)
+
+            img.save("out" + str(i) + ".png")
 
