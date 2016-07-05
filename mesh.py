@@ -105,8 +105,8 @@ def getPolyColourDif(poly, realPoly, polyColourDict, pix): #In: List of tuple of
                 difference += abs(pix[x, y][2] - polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][2])
 
 
-##    if numPixels > 0:
-##        difference /= float(3*numPixels)
+    if numPixels > 0:
+        difference /= float(3*numPixels)
 
     return difference
 
@@ -118,16 +118,20 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
     realPolyList = []
     for poly in polyList:
         realPoly = (nodeList[poly[0][0]][poly[0][1]], nodeList[poly[1][0]][poly[1][1]], nodeList[poly[2][0]][poly[2][1]])
+	realPolyList.append(realPoly)
         dif = getPolyColourDif(poly, realPoly, polyColourDict, pix)
         if dif > worstDif:
             worstPoly = poly
             worstRealPoly = realPoly
             worstDif = dif
 
-    nodeList[x][y] = ((worstRealPoly[0][0] + worstRealPoly[1][0] + worstRealPoly[2][0]) / 3, (worstRealPoly[0][1] + worstRealPoly[1][1] + worstRealPoly[2][1]) / 3)
+    if worstDif > 0:
+	midpoint = ((worstRealPoly[0][0] + worstRealPoly[1][0] + worstRealPoly[2][0]) / 3, (worstRealPoly[0][1] + worstRealPoly[1][1] + worstRealPoly[2][1]) / 3)
+        nodeList[x][y] = ((nodeList[x][y][0] + ((midpoint[0] - nodeList[x][y][0]) / 3)), (nodeList[x][y][1] + ((midpoint[1] - nodeList[x][y][1]) / 3)))
 
-    for poly in realPolyList:
-        polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))] = calculatePolyColour(poly, pix)
+
+    for poly in polyList:
+        polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[poly[0][0]][poly[0][1]], nodeList[poly[1][0]][poly[1][1]], nodeList[poly[2][0]][poly[2][1]]], pix)
     
 
 #########################################################################################
@@ -154,16 +158,17 @@ for x in range(0, NUM_NODES_WIDE - 1):
         polyColourDict[tuple(sorted([(x, y), (x + 1, y), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x + 1][y], nodeList[x + 1][y + 1]], pix)
 
 count = 0
-for i in range(0, 10):
+for i in range(0, 100):
     count = 0
-    print i
     xList = range(1, NUM_NODES_WIDE - 1)
     random.shuffle(xList)
     yList = range(1, NUM_NODES_HIGH - 1)
     random.shuffle(yList)
     for x in xList:
-        print count
         count += 1
+	f = open("progress.txt", 'w')
+	f.write(str(i) + ", " + str(count) + "\n")
+	f.close()
         for y in yList:
             moveNode(x, y, nodeList, polyColourDict, pix)
 
