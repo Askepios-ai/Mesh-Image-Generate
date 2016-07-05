@@ -68,8 +68,6 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
     
     minX, maxX, minY, maxY = getPolyBox(nodes)
 
-    #print(str(maxX) + " " + str(minX) + " " + str(maxY) + " " + str(minY) + "\n")
-
     for x in range(minX, maxX):
         for y in range(minY, maxY):
             if pixelInPolygon(nodes, [x, y]):
@@ -77,10 +75,11 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
                 blueAverage += pix[x, y][1]
                 greenAverage += pix[x, y][2]
                 numPixels += 1
-
-    redAverage /= numPixels
-    blueAverage /= numPixels
-    greenAverage /= numPixels
+                
+    if numPixels > 0:
+        redAverage /= numPixels
+        blueAverage /= numPixels
+        greenAverage /= numPixels
 
     return (redAverage, blueAverage, greenAverage)
 
@@ -97,10 +96,6 @@ def getPolyColourDif(poly, realPoly, polyColourDict, pix): #In: List of tuple of
     difference = 0
     numPixels = 0
 
-    #print(realPoly)
-##    print("maxX minX maxY minY")
-##    print(str(maxX) + " " + str(minX) + " " + str(maxY) + " " + str(minY))
-
     for x in range(minX, maxX):
         for y in range(minY, maxY):
             if pixelInPolygon(realPoly, [x, y]):
@@ -109,14 +104,10 @@ def getPolyColourDif(poly, realPoly, polyColourDict, pix): #In: List of tuple of
                 difference += abs(pix[x, y][1] - polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][1])
                 difference += abs(pix[x, y][2] - polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][2])
 
-##    print("Difference")
-##    print(difference)
-##    print("NumPixels")
-##    print(numPixels)
-    if numPixels > 0:
-        difference /= float(3*numPixels)
-##    print("Difference")
-##    print(difference)
+
+##    if numPixels > 0:
+##        difference /= float(3*numPixels)
+
     return difference
 
 def moveNode(x, y, nodeList, polyColourDict, pix):
@@ -124,31 +115,19 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
     worstPoly = ()
     worstRealPoly = ()
     polyList = getPolyList(x, y)
-##    print("\nMove poly\n")
+    realPolyList = []
     for poly in polyList:
-##        print(poly)
-##        print("\n")
-##        print(poly[0][0])
-##        print("\n")
-##        print(nodeList[poly[0][0]][poly[0][1]])
-##        print("\n")
         realPoly = (nodeList[poly[0][0]][poly[0][1]], nodeList[poly[1][0]][poly[1][1]], nodeList[poly[2][0]][poly[2][1]])
-##        print("Real Poly")
-##        print realPoly
         dif = getPolyColourDif(poly, realPoly, polyColourDict, pix)
-##        print("Dif")
-##        print(dif)
         if dif > worstDif:
             worstPoly = poly
             worstRealPoly = realPoly
             worstDif = dif
-##            print("Worst Real Poly")
-##            print(worstRealPoly)
 
-##    print(worstRealPoly)
     nodeList[x][y] = ((worstRealPoly[0][0] + worstRealPoly[1][0] + worstRealPoly[2][0]) / 3, (worstRealPoly[0][1] + worstRealPoly[1][1] + worstRealPoly[2][1]) / 3)
 
-    polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))] = calculatePolyColour(worstRealPoly, pix)
+    for poly in realPolyList:
+        polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))] = calculatePolyColour(poly, pix)
     
 
 #########################################################################################
@@ -173,20 +152,25 @@ for x in range(0, NUM_NODES_WIDE - 1):
     for y in range(0, NUM_NODES_HIGH - 1):
         polyColourDict[tuple(sorted([(x, y), (x, y + 1), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x][y + 1], nodeList[x + 1][y + 1]], pix)
         polyColourDict[tuple(sorted([(x, y), (x + 1, y), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x + 1][y], nodeList[x + 1][y + 1]], pix)
+
+count = 0
 for i in range(0, 10):
+    count = 0
     print i
     xList = range(1, NUM_NODES_WIDE - 1)
     random.shuffle(xList)
     yList = range(1, NUM_NODES_HIGH - 1)
     random.shuffle(yList)
     for x in xList:
+        print count
+        count += 1
         for y in yList:
             moveNode(x, y, nodeList, polyColourDict, pix)
 
-            img = Image.new('RGB', (WIDTH, HEIGHT))
-            drw = ImageDraw.Draw(img, "RGBA")
+    img = Image.new('RGB', (WIDTH, HEIGHT))
+    drw = ImageDraw.Draw(img, "RGBA")
 
-            drawNodeList(nodeList, polyColourDict, drw)
+    drawNodeList(nodeList, polyColourDict, drw)
 
-            img.save("out" + str(i) + ".png")
+    img.save("out" + str(i) + ".png")
 
