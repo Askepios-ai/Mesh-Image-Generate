@@ -12,7 +12,7 @@ random.seed()
 ##          Draws a polygon
 #########################################################################################
 def drawPolygon(poly, colour, drw):
-    drw.polygon(poly, colour)
+    drw.polygon(poly, (colour[0], colour[1], colour[2]))
 
 #########################################################################################
 ##          Draws all the nodes
@@ -90,7 +90,7 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
     for x in range(minX, maxX):
         for y in range(minY, maxY):
             if pixelInPolygon(nodes, [x, y]):
-		pixelList.append([x, y])
+                pixelList.append([x, y])
                 redAverage += pix[x, y][0]
                 blueAverage += pix[x, y][1]
                 greenAverage += pix[x, y][2]
@@ -100,6 +100,9 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
         redAverage /= numPixels
         blueAverage /= numPixels
         greenAverage /= numPixels
+    else:
+        print("No pixels")
+        print(nodes)
 
     difference = 0
     for pixel in pixelList:
@@ -133,10 +136,10 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
     realPolyList = []
     for poly in polyList:
         realPoly = (nodeList[poly[0][0]][poly[0][1]], nodeList[poly[1][0]][poly[1][1]], nodeList[poly[2][0]][poly[2][1]])
-	realPolyList.append(realPoly)
-	dif = polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][3]
+        realPolyList.append(realPoly)
+        dif = polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))][3]
         if dif < bestDif:
-	    bestDif = dif
+            bestDif = dif
         if dif > worstDif:
             worstPoly = poly
             worstRealPoly = realPoly
@@ -146,7 +149,7 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
     scaleFactor = max(min(scaleFactor, 4), 2)
     scaleFactor = 6 - scaleFactor
     if worstDif > 0:
-	midpoint = ((worstRealPoly[0][0] + worstRealPoly[1][0] + worstRealPoly[2][0]) / 3, (worstRealPoly[0][1] + worstRealPoly[1][1] + worstRealPoly[2][1]) / 3)
+        midpoint = ((worstRealPoly[0][0] + worstRealPoly[1][0] + worstRealPoly[2][0]) / 3, (worstRealPoly[0][1] + worstRealPoly[1][1] + worstRealPoly[2][1]) / 3)
         nodeList[x][y] = ((nodeList[x][y][0] + ((midpoint[0] - nodeList[x][y][0]) / scaleFactor)), (nodeList[x][y][1] + ((midpoint[1] - nodeList[x][y][1]) / scaleFactor)))
 
 
@@ -158,7 +161,7 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
 ##          Main start
 #########################################################################################
 
-targetImage = Image.open("test.png")
+targetImage = Image.open("test.jpg")
 pix = targetImage.load()
 WIDTH = targetImage.size[0]
 HEIGHT = targetImage.size[1]
@@ -168,7 +171,7 @@ polyColourDict = {}
 for x in range(0, NUM_NODES_WIDE):
     nodeRow = []
     for y in range(0, NUM_NODES_HIGH):
-    	nodeRow.append((x * (WIDTH / (NUM_NODES_WIDE - 1)), y * (HEIGHT / (NUM_NODES_HIGH - 1))))
+        nodeRow.append((int(x * (WIDTH / float(NUM_NODES_WIDE - 1))), int(y * (HEIGHT / float(NUM_NODES_HIGH - 1)))))
 
     nodeList.append(nodeRow)
 
@@ -186,14 +189,14 @@ for i in range(0, 100):
     random.shuffle(yList)
     for x in xList:
         count += 1
-	f = open("progress.txt", 'w')
-	f.write(str(i) + ", " + str(count) + "\n")
-	f.close()
+        f = open("progress.txt", 'w')
+        f.write(str(i) + ", " + str(count) + "\n")
+        f.close()
         for y in yList:
             moveNode(x, y, nodeList, polyColourDict, pix)
 
     img = Image.new('RGB', (WIDTH, HEIGHT))
-    drw = ImageDraw.Draw(img, "RGBA")
+    drw = ImageDraw.Draw(img, "RGB")
 
     drawNodeList(nodeList, polyColourDict, drw)
 
