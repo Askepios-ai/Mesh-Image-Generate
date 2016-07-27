@@ -1,8 +1,13 @@
 from PIL import Image, ImageDraw
 import random
+from multiprocessing import Process
+from threading import Thread
+import cProfile
+import pstats
+import StringIO
 
-NUM_NODES_WIDE = 64
-NUM_NODES_HIGH = 36
+NUM_NODES_WIDE = 90
+NUM_NODES_HIGH = 160
 WIDTH = 500
 HEIGHT = 500
 
@@ -44,9 +49,8 @@ def sameSide(a, b, p1, p2):
 #########################################################################################
 def pixelInPolygon(nodes, pixel):
     if sameSide(nodes[0], nodes[1], nodes[2], pixel) and sameSide(nodes[0], nodes[2], nodes[1], pixel) and sameSide(nodes[2], nodes[1], nodes[0], pixel):
-        return True
-    else:
-        return False
+		return True
+    return False
 
 #########################################################################################
 ##          Gets the smallest box that surrounds a polygon
@@ -91,26 +95,26 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
         for y in range(minY, maxY):
             if pixelInPolygon(nodes, [x, y]):
                 pixelList.append([x, y])
-                redAverage += pix[x, y][0]
-                blueAverage += pix[x, y][1]
-                greenAverage += pix[x, y][2]
+                redAverage += pix[x][y][0]
+                blueAverage += pix[x][y][1]
+                greenAverage += pix[x][y][2]
                 numPixels += 1
 
     if numPixels > 0:
         redAverage /= numPixels
         blueAverage /= numPixels
         greenAverage /= numPixels
-    else:
-        print("No pixels")
-        print(nodes)
 
     difference = 0
     for pixel in pixelList:
-        difference += abs(pix[pixel[0], pixel[1]][0] - redAverage)
-        difference += abs(pix[pixel[0], pixel[1]][1] - blueAverage)
-        difference += abs(pix[pixel[0], pixel[1]][2] - greenAverage)
+        difference += abs(pix[pixel[0]][pixel[1]][0] - redAverage)
+        difference += abs(pix[pixel[0]][pixel[1]][1] - blueAverage)
+        difference += abs(pix[pixel[0]][pixel[1]][2] - greenAverage)
 
-    return (redAverage, blueAverage, greenAverage, difference)
+    if numPixels > 0:
+        difference /= numPixels**0.7
+
+    return (redAverage, blueAverage, greenAverage, int(difference))
 
 #########################################################################################
 ##          Returns a list of node references connected to provided node
@@ -162,9 +166,16 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
 #########################################################################################
 
 targetImage = Image.open("test.jpg")
-pix = targetImage.load()
+pixels = targetImage.load()
 WIDTH = targetImage.size[0]
 HEIGHT = targetImage.size[1]
+
+pix = []
+for x in range(WIDTH):
+    pixRow = []
+    for y in range(HEIGHT):
+        pixRow.append(pixels[x, y])
+    pix.append(pixRow)
 
 nodeList = []
 polyColourDict = {}
@@ -180,19 +191,22 @@ for x in range(0, NUM_NODES_WIDE - 1):
         polyColourDict[tuple(sorted([(x, y), (x, y + 1), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x][y + 1], nodeList[x + 1][y + 1]], pix)
         polyColourDict[tuple(sorted([(x, y), (x + 1, y), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x + 1][y], nodeList[x + 1][y + 1]], pix)
 
+pr= cProfile.Profile()
+
 count = 0
 for i in range(0, 100):
     count = 0
-    xList = range(1, NUM_NODES_WIDE - 1)
+    xList = range(1, NUM_NODES_HIGH - 1)
     random.shuffle(xList)
-    yList = range(1, NUM_NODES_HIGH - 1)
+    yList = range(1, NUM_NODES_WIDE - 1)
     random.shuffle(yList)
-    for x in xList:
+    for y in xList:
         count += 1
         f = open("progress.txt", 'w')
         f.write(str(i) + ", " + str(count) + "\n")
         f.close()
-        for y in yList:
+        threadList = []
+        for x in yList:
             moveNode(x, y, nodeList, polyColourDict, pix)
 
     img = Image.new('RGB', (WIDTH, HEIGHT))
