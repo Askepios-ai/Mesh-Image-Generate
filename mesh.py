@@ -5,9 +5,10 @@ from threading import Thread
 import cProfile
 import pstats
 import StringIO
+import sys
 
-NUM_NODES_WIDE = 90
-NUM_NODES_HIGH = 160
+NUM_NODES_WIDE = 320
+NUM_NODES_HIGH = 180
 WIDTH = 500
 HEIGHT = 500
 
@@ -148,7 +149,7 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
             worstPoly = poly
             worstRealPoly = realPoly
             worstDif = dif
-    
+
     scaleFactor = worstDif / max(bestDif, 1)
     scaleFactor = max(min(scaleFactor, 4), 2)
     scaleFactor = 6 - scaleFactor
@@ -159,13 +160,17 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
 
     for poly in polyList:
         polyColourDict[tuple(sorted(poly, key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[poly[0][0]][poly[0][1]], nodeList[poly[1][0]][poly[1][1]], nodeList[poly[2][0]][poly[2][1]]], pix)
-    
+
 
 #########################################################################################
 ##          Main start
 #########################################################################################
 
-targetImage = Image.open("test.jpg")
+targetImagePath = "test.jpg"
+if len(sys.argv) > 1:
+    targetImagePath = sys.argv[1]
+
+targetImage = Image.open(targetImagePath)
 pixels = targetImage.load()
 WIDTH = targetImage.size[0]
 HEIGHT = targetImage.size[1]
@@ -209,10 +214,11 @@ for i in range(0, 100):
         for x in yList:
             moveNode(x, y, nodeList, polyColourDict, pix)
 
-    img = Image.new('RGB', (WIDTH, HEIGHT))
-    drw = ImageDraw.Draw(img, "RGB")
+img = Image.new('RGB', (WIDTH, HEIGHT))
+drw = ImageDraw.Draw(img, "RGB")
 
-    drawNodeList(nodeList, polyColourDict, drw)
+drawNodeList(nodeList, polyColourDict, drw)
 
-    img.save("out" + str(i) + ".png")
+outImagePath = targetImageString.split(".")[0] + "_mesh.png"
+img.save(outImagePath)
 
