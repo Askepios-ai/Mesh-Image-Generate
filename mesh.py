@@ -219,6 +219,6 @@ drw = ImageDraw.Draw(img, "RGB")
 
 drawNodeList(nodeList, polyColourDict, drw)
 
-outImagePath = targetImageString.split(".")[0] + "_mesh.png"
+outImagePath = targetImagePath.split(".")[0] + "_mesh.png"
 img.save(outImagePath)
 
