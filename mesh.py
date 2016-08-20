@@ -73,7 +73,7 @@ def getPolyBox(poly):
         if node[1] < minY:
             minY = node[1]
     return minX, maxX, minY, maxY
-    
+
 #########################################################################################
 ##          Calculates the colour a polygon should be
 #########################################################################################
@@ -82,14 +82,14 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
     maxY = 0
     minX = WIDTH
     minY = HEIGHT
-    
+
     redAverage = 0
     blueAverage = 0
     greenAverage = 0
 
     pixelList = []
     numPixels = 0
-    
+
     minX, maxX, minY, maxY = getPolyBox(nodes)
 
     for x in range(minX, maxX):
@@ -112,8 +112,15 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
         difference += abs(pix[pixel[0]][pixel[1]][1] - blueAverage)
         difference += abs(pix[pixel[0]][pixel[1]][2] - greenAverage)
 
+#If there are pixels under this polygon scale the difference to allow some small polygons
+#If there are no pixels, set the colour of the polygon to the colour of one of its
+#corners to stop it from incorrectly just being black
     if numPixels > 0:
         difference /= numPixels**0.7
+    else:
+        redAverage = pix[minX][minY][0]
+        blueAverage = pix[minX][minY][1]
+        greenAverage = pix[minX][minY][2]
 
     return (redAverage, blueAverage, greenAverage, int(difference))
 
