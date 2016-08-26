@@ -7,8 +7,8 @@ import pstats
 import StringIO
 import sys
 
-NUM_NODES_WIDE = 320
-NUM_NODES_HIGH = 180
+NUM_NODES_WIDE = 80
+NUM_NODES_HIGH = 45
 WIDTH = 500
 HEIGHT = 500
 
@@ -93,13 +93,17 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
     minX, maxX, minY, maxY = getPolyBox(nodes)
 
     for x in range(minX, maxX):
+        foundPoint = False
         for y in range(minY, maxY):
             if pixelInPolygon(nodes, [x, y]):
+                foundPoint = True
                 pixelList.append([x, y])
                 redAverage += pix[x][y][0]
                 blueAverage += pix[x][y][1]
                 greenAverage += pix[x][y][2]
                 numPixels += 1
+            elif foundPoint == True:
+                break
 
     if numPixels > 0:
         redAverage /= numPixels
@@ -221,11 +225,11 @@ for i in range(0, 100):
         for x in yList:
             moveNode(x, y, nodeList, polyColourDict, pix)
 
-img = Image.new('RGB', (WIDTH, HEIGHT))
-drw = ImageDraw.Draw(img, "RGB")
+    img = Image.new('RGB', (WIDTH, HEIGHT))
+    drw = ImageDraw.Draw(img, "RGB")
 
-drawNodeList(nodeList, polyColourDict, drw)
+    drawNodeList(nodeList, polyColourDict, drw)
 
-outImagePath = targetImagePath.split(".")[0] + "_mesh.png"
-img.save(outImagePath)
+    outImagePath = targetImagePath.split(".")[0] + "_mesh.png"
+    img.save(outImagePath)
 
