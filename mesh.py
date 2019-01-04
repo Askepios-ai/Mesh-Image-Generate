@@ -33,23 +33,40 @@ def drawNodeList(nodeList, polyColourDict, drw):
 ##          Checks of points p1 and p2 are the same side of line a->b
 #########################################################################################
 #We can tell if the two points p1 and p2 are on the same side of the line a->b using cross products. (a->b)x(a->p1) should have the same z direction as (a->b)x(a->p2)
-def sameSide(a, b, p1, p2):
-    ab = [a[0] - b[0], a[1] - b[1]] #get vector a->b
-    ap1 = [a[0] - p1[0], a[1] - p1[1]] #get vector a->p1
-    ap2 = [a[0] - p2[0], a[1] - p2[1]] #get vector a->p2
-    cp1 = ab[0]*ap1[1] - ab[1]*ap1[0] #z direction of ab x ap1
-    cp2= ab[0]*ap2[1] - ab[1]*ap2[0] #z direction of ab x ap2
+def sameSide(vecAB, crossC, a, p):
+    vecAP = [a[0] - p[0], a[1] - p[1]] #get vector a->p2
+    crossP= vecAB[0]*vecAP[1] - vecAB[1]*vecAP[0] #z direction of ab x ap2
 
-    if cp1 * cp2 > 0: #test that the two numbers have the same sign ie the z is in the same direction
+    if crossP * crossC > 0: #test that the two numbers have the same sign ie the z is in the same direction
         return True
     else:
         return False
 
 #########################################################################################
+##          Gets the vectors and cross products of a polygon that don't change for speed improvements
+#########################################################################################
+def getVecsAndCrosses(nodes):
+    vecAB = [nodes[0][0] - nodes[1][0], nodes[0][1] - nodes[1][1]]
+    vecAC = [nodes[0][0] - nodes[2][0], nodes[0][1] - nodes[2][1]]
+    vecBC = [nodes[1][0] - nodes[2][0], nodes[1][1] - nodes[2][1]]
+    vecBA = [nodes[1][0] - nodes[0][0], nodes[1][1] - nodes[0][1]]
+
+    crossC = vecAB[0]*vecAC[1] - vecAB[1]*vecAC[0]
+    crossB = vecAC[0]*vecAB[1] - vecAC[1]*vecAB[0]
+    crossA = vecBC[0]*vecBA[1] - vecBC[1]*vecBA[0]
+
+    vecs = [vecAB, vecAC, vecBC]
+    crosses = [crossA, crossB, crossC]
+    
+    return (vecs, crosses)
+
+#########################################################################################
 ##          Checks if a pixels is in a polygon
 #########################################################################################
 def pixelInPolygon(nodes, pixel):
-    if sameSide(nodes[0], nodes[1], nodes[2], pixel) and sameSide(nodes[0], nodes[2], nodes[1], pixel) and sameSide(nodes[2], nodes[1], nodes[0], pixel):
+    vecs, crosses = getVecsAndCrosses(nodes)
+
+    if sameSide(vecs[0], crosses[2], nodes[0], pixel) and sameSide(vecs[1], crosses[1], nodes[0], pixel) and sameSide(vecs[2], crosses[0], nodes[1], pixel):
 		return True
     return False
 
@@ -207,8 +224,8 @@ for x in range(0, NUM_NODES_WIDE - 1):
         polyColourDict[tuple(sorted([(x, y), (x, y + 1), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x][y + 1], nodeList[x + 1][y + 1]], pix)
         polyColourDict[tuple(sorted([(x, y), (x + 1, y), (x + 1, y + 1)], key=lambda x: (x[0], x[1])))] = calculatePolyColour([nodeList[x][y], nodeList[x + 1][y], nodeList[x + 1][y + 1]], pix)
 
-pr= cProfile.Profile()
-
+pr = cProfile.Profile()
+pr.enable()
 count = 0
 for i in range(0, 100):
     count = 0
@@ -233,3 +250,10 @@ for i in range(0, 100):
     outImagePath = targetImagePath.split(".")[0] + "_mesh.png"
     img.save(outImagePath)
 
+pr.disable()
+
+s = StringIO.StringIO()
+sortby = 'cumulative'
+ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+ps.print_stats()
+print s.getvalue()
