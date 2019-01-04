@@ -12,6 +12,9 @@ NUM_NODES_HIGH = 45
 WIDTH = 500
 HEIGHT = 500
 
+total_pixel_in = 0
+total_pixel_out = 0
+
 random.seed()
 
 #########################################################################################
@@ -63,11 +66,14 @@ def getVecsAndCrosses(nodes):
 #########################################################################################
 ##          Checks if a pixels is in a polygon
 #########################################################################################
-def pixelInPolygon(nodes, pixel):
-    vecs, crosses = getVecsAndCrosses(nodes)
+def pixelInPolygon(nodes, vecs, crosses, pixel):
+    global total_pixel_in
+    global total_pixel_out
 
     if sameSide(vecs[0], crosses[2], nodes[0], pixel) and sameSide(vecs[1], crosses[1], nodes[0], pixel) and sameSide(vecs[2], crosses[0], nodes[1], pixel):
-		return True
+        total_pixel_in += 1
+        return True
+    total_pixel_out += 1
     return False
 
 #########################################################################################
@@ -108,11 +114,13 @@ def calculatePolyColour(nodes, pix): #List of tuples of pixel coordinates, image
     numPixels = 0
 
     minX, maxX, minY, maxY = getPolyBox(nodes)
+    
+    vecs, crosses = getVecsAndCrosses(nodes)
 
     for x in range(minX, maxX):
         foundPoint = False
         for y in range(minY, maxY):
-            if pixelInPolygon(nodes, [x, y]):
+            if pixelInPolygon(nodes, vecs, crosses, [x, y]):
                 foundPoint = True
                 pixelList.append([x, y])
                 redAverage += pix[x][y][0]
@@ -257,3 +265,7 @@ sortby = 'cumulative'
 ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 ps.print_stats()
 print s.getvalue()
+
+print("total pixel in: " + str(total_pixel_in))
+print("total pixel out: " + str(total_pixel_out))
+
