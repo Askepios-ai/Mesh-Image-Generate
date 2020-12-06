@@ -4,7 +4,7 @@ from multiprocessing import Process
 from threading import Thread
 import cProfile
 import pstats
-import StringIO
+from io import StringIO
 import sys
 
 NUM_NODES_WIDE = 80
@@ -202,7 +202,7 @@ def moveNode(x, y, nodeList, polyColourDict, pix):
 ##          Main start
 #########################################################################################
 
-targetImagePath = "test.jpg"
+targetImagePath = "mads.jpg"
 if len(sys.argv) > 1:
     targetImagePath = sys.argv[1]
 
@@ -268,4 +268,5 @@ print s.getvalue()
 
 print("total pixel in: " + str(total_pixel_in))
 print("total pixel out: " + str(total_pixel_out))
+
 
